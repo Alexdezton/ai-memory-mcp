@@ -154,6 +154,12 @@ Add the following to your `claude_desktop_config.json`:
 }
 ```
 
+##### How to Update (For Agents & Developers)
+If the MCP server is launched from a local build path (e.g. `node /path/to/AI_Memory_mcp/build/index.js`), you can update the executable by performing:
+1. Run `git pull` inside the server repository directory to pull the latest changes.
+2. Run `npm run build` to recompile the server.
+3. Copy the updated `templates/AI_MEMORY/core_rules.md` from the server repository over the active project's `AI_MEMORY/core_rules.md` to apply new rules.
+
 ---
 
 ## Документация на русском языке
@@ -300,4 +306,10 @@ Add the following to your `claude_desktop_config.json`:
   }
 }
 ```
+
+##### Как обновить (Для агентов и разработчиков)
+Если MCP-сервер запускается из локальной директории (например, `node /путь/к/AI_Memory_mcp/build/index.js`), обновите его следующими шагами:
+1. Выполните `git pull` в папке репозитория сервера для загрузки последних изменений.
+2. Выполните `npm run build` для компиляции проекта.
+3. Скопируйте обновленный файл `templates/AI_MEMORY/core_rules.md` из репозитория сервера поверх файла `AI_MEMORY/core_rules.md` в вашем активном проекте.
 
