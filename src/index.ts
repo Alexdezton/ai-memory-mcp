@@ -22,13 +22,13 @@ const execAsync = promisify(exec);
  */
 interface MemoryConfig {
   max_code_lines: number;
-  max_memory_md_lines: number;
+  max_agent_md_lines: number;
   allowed_memory_root_files: string[];
 }
 
 const DEFAULT_CONFIG: MemoryConfig = {
   max_code_lines: 1000,
-  max_memory_md_lines: 600,
+  max_agent_md_lines: 600,
   allowed_memory_root_files: [
     "LOADER.md",
     "EOS.md",
@@ -99,7 +99,7 @@ function loadConfig(projectRoot: string): MemoryConfig {
       const userConfig = JSON.parse(content);
       return {
         max_code_lines: userConfig.max_code_lines ?? DEFAULT_CONFIG.max_code_lines,
-        max_memory_md_lines: userConfig.max_memory_md_lines ?? DEFAULT_CONFIG.max_memory_md_lines,
+        max_agent_md_lines: userConfig.max_agent_md_lines ?? userConfig.max_memory_md_lines ?? DEFAULT_CONFIG.max_agent_md_lines,
         allowed_memory_root_files: userConfig.allowed_memory_root_files ?? DEFAULT_CONFIG.allowed_memory_root_files,
       };
     } catch (e) {
@@ -165,9 +165,9 @@ function checkWorkspaceLimits(projectRoot: string): void {
 
           if (isInsideMemory) {
             // Memory files have no limits, EXCEPT for agent.md
-            if (currentFilename === "agent.md" && lineCount > config.max_memory_md_lines) {
+            if (currentFilename === "agent.md" && lineCount > config.max_agent_md_lines) {
               const ruleLink = `[core_rules.md](file:///${path.join(memoryDir, "core_rules.md").replace(/\\/g, "/")})`;
-              throw new Error(`LIMIT_EXCEEDED: Файл "${relativePath}" содержит ${lineCount} строк, что превышает лимит в ${config.max_memory_md_lines} строк.
+              throw new Error(`LIMIT_EXCEEDED: Файл "${relativePath}" содержит ${lineCount} строк, что превышает лимит в ${config.max_agent_md_lines} строк.
 Заданный лимит для agent.md — прямое указание держать оперативную память агента краткой и структурированной.
 Подробнее о стандартах читайте в правилах: ${ruleLink}`);
             }
@@ -342,9 +342,9 @@ function verifyWrite(projectRoot: string, filepath: string): string {
   const filename = path.basename(resolvedPath).toLowerCase();
   if (isInsideMemory) {
     // Memory files have no limits, EXCEPT for agent.md
-    if (filename === "agent.md" && lineCount > config.max_memory_md_lines) {
+    if (filename === "agent.md" && lineCount > config.max_agent_md_lines) {
       const ruleLink = `[core_rules.md](file:///${path.join(memoryDir, "core_rules.md").replace(/\\/g, "/")})`;
-      throw new Error(`LIMIT_EXCEEDED: Файл "${relativeToProject}" содержит ${lineCount} строк, что превышает лимит в ${config.max_memory_md_lines} строк.
+      throw new Error(`LIMIT_EXCEEDED: Файл "${relativeToProject}" содержит ${lineCount} строк, что превышает лимит в ${config.max_agent_md_lines} строк.
 Заданный лимит для agent.md — прямое указание держать оперативную память агента краткой и структурированной.
 Подробнее о стандартах читайте в правилах: ${ruleLink}`);
     }
