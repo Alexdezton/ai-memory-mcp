@@ -58,6 +58,12 @@ The config file is initialized in the project root:
 }
 ```
 
+### MCP Call History (Logging)
+
+Every action the agent performs while communicating with this MCP server is automatically logged in the file [`AI_MEMORY/mcp_history.log`](file:///AI_MEMORY/mcp_history.log).
+* **Zero Token Overhead:** The logging is handled entirely by the Node.js server itself. It does not consume any LLM context or input/output tokens.
+* **Exempt from Limits:** The `mcp_history.log` file is automatically ignored during line-limit checks, allowing it to grow freely and preserve the session's action history.
+
 ---
 
 ### Installation
@@ -217,6 +223,12 @@ If the `ai-memory-mcp` server is run from a local path, you can ask the agent to
   ]
 }
 ```
+
+### История вызовов (Логирование MCP)
+
+Каждое действие агента при взаимодействии с сервером автоматически записывается на диске в файл [`AI_MEMORY/mcp_history.log`](file:///AI_MEMORY/mcp_history.log). 
+* **Как это работает:** Запись лога производится скрытно на стороне Node.js-сервера, что гарантирует **нулевой расход токенов** модели и отсутствие задержек в производительности.
+* **Исключение из лимитов:** Файл `mcp_history.log` автоматически исключен из проверок лимита строк, что позволяет ему беспрепятственно накапливать историю сессии.
 
 ---
 
