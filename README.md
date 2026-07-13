@@ -154,11 +154,14 @@ Add the following to your `claude_desktop_config.json`:
 }
 ```
 
-##### How to Update (For Agents & Developers)
-If the MCP server is launched from a local build path (e.g. `node /path/to/AI_Memory_mcp/build/index.js`), you can update the executable by performing:
-1. Run `git pull` inside the server repository directory to pull the latest changes.
-2. Run `npm run build` to recompile the server.
-3. Copy the updated `templates/AI_MEMORY/core_rules.md` from the server repository over the active project's `AI_MEMORY/core_rules.md` to apply new rules.
+##### MCP & Memory Update Protocol (For Agents & Developers)
+If the `ai-memory-mcp` server is run from a local path (e.g. `node d:/ai/project/AI_Memory_mcp/build/index.js`), you can ask the agent to update it using these steps:
+
+1. **Update Server Executable:** Run a shell command with the directory set to the MCP server's repository path (`d:/ai/project/AI_Memory_mcp`) and execute `git pull; npm run build`. This recompiles the server locally.
+2. **Update Rules (`core_rules.md`) in Active Project:**
+   - Load the updated `templates/AI_MEMORY/core_rules.md` from the MCP server repository or from GitHub raw.
+   - Read the local `AI_MEMORY/core_rules.md` in the current project.
+   - **Overwriting Protection:** If the local project's rules file has custom modifications, you **must warn the user** about potential data loss and ask for permission before overwriting. Alternatively, perform a targeted edit using `replace_file_content` to copy only the new/changed rules (like replacing `safe_write_file` with the `verify_write` protocol) and preserve all other user customizations.
 
 ---
 
@@ -307,9 +310,12 @@ If the MCP server is launched from a local build path (e.g. `node /path/to/AI_Me
 }
 ```
 
-##### Как обновить (Для агентов и разработчиков)
-Если MCP-сервер запускается из локальной директории (например, `node /путь/к/AI_Memory_mcp/build/index.js`), обновите его следующими шагами:
-1. Выполните `git pull` в папке репозитория сервера для загрузки последних изменений.
-2. Выполните `npm run build` для компиляции проекта.
-3. Скопируйте обновленный файл `templates/AI_MEMORY/core_rules.md` из репозитория сервера поверх файла `AI_MEMORY/core_rules.md` в вашем активном проекте.
+##### Протокол обновления MCP и правил памяти (Для агентов и разработчиков)
+Если MCP-сервер `ai-memory-mcp` запускается из локальной директории (например, `node d:/ai/project/AI_Memory_mcp/build/index.js`), вы можете поручить агенту выполнить обновление следующими шагами:
+
+1. **Обновление исполняемого кода сервера:** Запустите команду терминала, указав рабочую директорию репозитория сервера (`d:/ai/project/AI_Memory_mcp`), и выполните `git pull; npm run build`. Это перекомпилирует билд на диске без затрагивания кэша npm.
+2. **Обновление правил (`core_rules.md`) в активном проекте:**
+   - Загрузите обновленный `templates/AI_MEMORY/core_rules.md` из репозитория MCP-сервера или напрямую с GitHub raw.
+   - Считайте локальный файл `AI_MEMORY/core_rules.md` в текущем проекте.
+   - **Защита от перезаписи настроек пользователя:** Если локальный файл правил содержит пользовательские изменения, вы **ОБЯЗАНЫ предупредить пользователя** о возможной потере данных и получить согласие на перезапись. В качестве альтернативы выполните точечное обновление (например, замените правило `safe_write_file` на `verify_write`), используя `replace_file_content`, чтобы сохранить все остальные пользовательские настройки.
 
