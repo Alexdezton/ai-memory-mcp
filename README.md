@@ -155,9 +155,9 @@ Add the following to your `claude_desktop_config.json`:
 ```
 
 ##### MCP & Memory Update Protocol (For Agents & Developers)
-If the `ai-memory-mcp` server is run from a local path (e.g. `node [path/to/ai-memory-mcp]/build/index.js`), you can ask the agent to update it using these steps:
+If the `ai-memory-mcp` server is run from a local path, you can ask the agent to update it using these steps:
 
-1. **Update Server Executable:** Run a shell command with the directory set to the MCP server's repository path (`[path/to/ai-memory-mcp]`) and execute `git pull; npm run build`. This recompiles the server locally.
+1. **Update Server Executable:** Run a shell command with the directory set to the MCP server's repository path (determine the location using your installation skills) and execute `git pull; npm run build`. This recompiles the server locally.
 2. **Update Rules (`core_rules.md`) in Active Project:**
    - Load the updated `templates/AI_MEMORY/core_rules.md` from the MCP server repository or from GitHub raw.
    - Read the local `AI_MEMORY/core_rules.md` in the current project.
@@ -311,9 +311,9 @@ If the `ai-memory-mcp` server is run from a local path (e.g. `node [path/to/ai-m
 ```
 
 ##### Протокол обновления MCP и правил памяти (Для агентов и разработчиков)
-Если MCP-сервер `ai-memory-mcp` запускается из локальной директории (например, `node [path/to/ai-memory-mcp]/build/index.js`), вы можете поручить агенту выполнить обновление следующими шагами:
+Если MCP-сервер `ai-memory-mcp` запускается из локальной директории, вы можете поручить агенту выполнить обновление следующими шагами:
 
-1. **Обновление исполняемого кода сервера:** Запустите команду терминала, указав рабочую директорию репозитория сервера (`[path/to/ai-memory-mcp]`), и выполните `git pull; npm run build`. Это перекомпилирует билд на диске без затрагивания кэша npm.
+1. **Обновление исполняемого кода сервера:** Запустите команду терминала в папке репозитория MCP-сервера (определите её местоположение на основе ваших навыков установки) и выполните `git pull; npm run build`. Это перекомпилирует билд на диске без затрагивания кэша npm.
 2. **Обновление правил (`core_rules.md`) в активном проекте:**
    - Загрузите обновленный `templates/AI_MEMORY/core_rules.md` из репозитория MCP-сервера или напрямую с GitHub raw.
    - Считайте локальный файл `AI_MEMORY/core_rules.md` в текущем проекте.
