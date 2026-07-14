@@ -338,7 +338,10 @@ function verifyWrite(projectRoot, filepath) {
   const isSourceFile = [".css", ".js", ".ts", ".tsx", ".jsx", ".scss", ".sass", ".less"].includes(ext);
 
   if (config.disallow_root_source_files && parentDir === projectRoot && isSourceFile) {
-    throw new Error(`ROOT_SOURCE_FORBIDDEN: Файлы исходного кода (${baseFilename}) не должны находиться прямо в корне проекта. Пожалуйста, организуйте структуру проекта и перенесите этот файл в соответствующую подпапку (например, css/, js/, styles/, scripts/ или src/).`);
+    const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+    throw new Error(`ROOT_SOURCE_FORBIDDEN: Файлы исходного кода (${baseFilename}) не должны находиться прямо в корне проекта.
+Пожалуйста, перенесите файл в соответствующую подпапку (например, css/, js/ или src/).
+Подробнее о стандартах структуры папок читайте в регламенте: ${rulesLink}`);
   }
 
   // Check limits
