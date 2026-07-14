@@ -6,19 +6,24 @@
 
 ## AI Agent Guidelines Index
 
-**Purpose:** Behavioral protocols and efficiency standards for AI agents working on this project
+**Purpose:** Behavioral protocols, standards, and rules for AI agents working on this project.
 
-**Location:** `AI_MEMORY/`
+**Location:** `AI_MEMORY/ai_agent_guidelines/`
 
 **When to read:**
-- **MANDATORY:** Read `AGENT_DISCIPLINE.md` FIRST before ANY work
-- Read efficiency guidelines when planning task execution
+- **MANDATORY:** Read `workflow/AGENT_DISCIPLINE.md` FIRST before ANY work.
+- Read category guidelines as needed when working on relevant aspects of the codebase.
 
-**Available Guidelines:**
-1. **AGENT_DISCIPLINE.md** ⚠️ MANDATORY FIRST READ - Behavioral law
-2. **LOADER.md** - AI_MEMORY loading protocol
-3. **EOS.md** - End-of-session checkpoint protocol
-4. **core_rules.md** - Основные правила, PROJECT_STATE, лимиты файлов
+**Structured Categories & Available Guidelines:**
+1. **`architecture/`** (Project structure, API design, architectural layers)
+   - [PROJECT_STRUCTURE.md](ai_agent_guidelines/architecture/PROJECT_STRUCTURE.md) — Folder layout rules
+2. **`development/`** (Code style, lint rules, framework conventions)
+   - [core_rules.md](core_rules.md) (Note: global rules index is in the memory root, details go here)
+3. **`quality_assurance/`** (Testing checklists, manual/auto test protocols)
+4. **`workflow/`** (Git commit flow, agent self-discipline, session rules)
+   - [AGENT_DISCIPLINE.md](ai_agent_guidelines/workflow/AGENT_DISCIPLINE.md) ⚠️ MANDATORY FIRST READ
+   - [LOADER.md](LOADER.md) (Session start, located in root)
+   - [EOS.md](EOS.md) (Session close, located in root)
 
 ---
 
