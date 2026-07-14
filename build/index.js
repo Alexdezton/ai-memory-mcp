@@ -94,12 +94,16 @@ function loadConfig(projectRoot) {
         max_agent_md_lines: userConfig.max_agent_md_lines ?? userConfig.max_memory_md_lines ?? DEFAULT_CONFIG.max_agent_md_lines,
         disallow_root_source_files: userConfig.disallow_root_source_files ?? DEFAULT_CONFIG.disallow_root_source_files,
         allowed_memory_root_files: userConfig.allowed_memory_root_files ?? DEFAULT_CONFIG.allowed_memory_root_files,
+        preset: userConfig.preset ?? "vanilla",
       };
     } catch (e) {
       // Fallback on JSON parse error
     }
   }
-  return DEFAULT_CONFIG;
+  return {
+    ...DEFAULT_CONFIG,
+    preset: "vanilla"
+  };
 }
 
 /**
@@ -187,7 +191,7 @@ function checkWorkspaceLimits(projectRoot) {
 /**
  * ETAP 1: Инициализация проекта и рефакторинг папок
  */
-function initProjectMemory(projectRoot) {
+function initProjectMemory(projectRoot, preset = "vanilla") {
   const memoryDir = getMemoryDirPath(projectRoot);
   const templatesDir = path.resolve(__dirname, "..", "templates");
 
@@ -276,11 +280,111 @@ function initProjectMemory(projectRoot) {
   // Create config file if not exists
   const configPath = path.join(projectRoot, "mcp_ai_memory_config.json");
   if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), "utf-8");
-    movedLog += `Создан mcp_ai_memory_config.json в корне проекта\n`;
+    const configData = {
+      ...DEFAULT_CONFIG,
+      preset: preset
+    };
+    fs.writeFileSync(configPath, JSON.stringify(configData, null, 2), "utf-8");
+    movedLog += `Создан mcp_ai_memory_config.json в корне проекта с пресетом "${preset}"\n`;
   }
 
-  return `Инициализация памяти завершена.\n${copyLog}${movedLog}`;
+  // Create PROJECT_STRUCTURE.md dynamically based on preset
+  let structureContent = "";
+  if (preset === "react") {
+    const folders = ["src/components", "src/styles", "src/hooks", "src/assets"];
+    for (const f of folders) {
+      const fullF = path.join(projectRoot, f);
+      if (!fs.existsSync(fullF)) {
+        fs.mkdirSync(fullF, { recursive: true });
+      }
+    }
+    
+    structureContent = `# PROJECT STRUCTURE & FILE ORGANIZATION GUIDELINES (React Preset)
+
+Настоящий регламент описывает профессиональные стандарты организации файлов проекта для React-приложений.
+
+## 📂 Структура папок (React / Vite)
+Все файлы исходного кода (кроме конфигураций) ДОЛЖНЫ находиться внутри папки \`src/\`. Размещение кода непосредственно в корне проекта ЗАПРЕЩЕНО.
+
+\`\`\`
+├── AI_MEMORY/           # Проектная память
+├── src/                 # Исходный код приложения
+│   ├── components/      # UI-компоненты
+│   ├── styles/          # Глобальные или модульные CSS-стили
+│   ├── hooks/           # Пользовательские React-хуки
+│   ├── assets/          # Изображения, иконки, шрифты
+│   ├── App.jsx          # Корневой компонент
+│   └── main.jsx         # Точка входа React
+├── mcp_ai_memory_config.json
+└── package.json
+\`\`\`
+`;
+  } else if (preset === "nextjs") {
+    const folders = ["src/app", "src/components", "public"];
+    for (const f of folders) {
+      const fullF = path.join(projectRoot, f);
+      if (!fs.existsSync(fullF)) {
+        fs.mkdirSync(fullF, { recursive: true });
+      }
+    }
+
+    structureContent = `# PROJECT STRUCTURE & FILE ORGANIZATION GUIDELINES (Next.js Preset)
+
+Настоящий регламент описывает стандарты организации файлов проекта для Next.js-приложений.
+
+## 📂 Структура папок (Next.js App Router)
+Все файлы исходного кода (компоненты, стили, роуты) ДОЛЖНЫ находиться внутри папки \`src/\` или \`app/\`. Размещение кода непосредственно в корне проекта ЗАПРЕЩЕНО.
+
+\`\`\`
+├── AI_MEMORY/           # Проектная память
+├── src/
+│   ├── app/             # Роуты, страницы и лейауты (App Router)
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/      # UI-компоненты
+│   └── styles/          # Стили
+├── public/              # Статические файлы (картинки, шрифты)
+├── mcp_ai_memory_config.json
+└── package.json
+\`\`\`
+`;
+  } else {
+    const folders = ["css", "js"];
+    for (const f of folders) {
+      const fullF = path.join(projectRoot, f);
+      if (!fs.existsSync(fullF)) {
+        fs.mkdirSync(fullF, { recursive: true });
+      }
+    }
+
+    structureContent = `# PROJECT STRUCTURE & FILE ORGANIZATION GUIDELINES (Vanilla HTML/CSS/JS)
+
+Настоящий регламент описывает стандарты организации файлов проекта для простых сайтов.
+
+## 📂 Структура папок
+Размещение файлов исходного кода (.css, .js) непосредственно в корневом каталоге ЗАПРЕЩЕНО. Корень предназначен исключительно для конфигураций и входного \`index.html\`.
+
+\`\`\`
+├── AI_MEMORY/           # Проектная память
+├── css/                 # Стили
+│   ├── variables.css
+│   ├── layout.css
+│   └── components.css
+├── js/                  # Скрипты
+│   ├── data.js
+│   └── script.js
+├── index.html           # Единственный разрешенный файл в корне
+├── mcp_ai_memory_config.json
+└── package.json
+\`\`\`
+`;
+  }
+
+  const structFile = path.join(guidelinesDir, "PROJECT_STRUCTURE.md");
+  fs.writeFileSync(structFile, structureContent, "utf-8");
+  movedLog += `Сгенерирован PROJECT_STRUCTURE.md с пресетом "${preset}"\n`;
+
+  return `${copyLog}${movedLog}Инициализация памяти завершена.`;
 }
 
 /**
@@ -331,28 +435,57 @@ function verifyWrite(projectRoot, filepath) {
     }
   }
 
-  // Check root source files restriction
+  // Check root source files restriction based on preset
   const parentDir = path.dirname(resolvedPath);
   const ext = path.extname(resolvedPath).toLowerCase();
   const baseFilename = path.basename(resolvedPath);
   const isSourceFile = [".css", ".js", ".ts", ".tsx", ".jsx", ".scss", ".sass", ".less"].includes(ext);
 
-  if (config.disallow_root_source_files && parentDir === projectRoot && isSourceFile) {
-    const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
-    throw new Error(`ROOT_SOURCE_FORBIDDEN: Файлы исходного кода (${baseFilename}) не должны находиться прямо в корне проекта.
+  if (config.disallow_root_source_files && isSourceFile) {
+    const preset = config.preset || "vanilla";
+    const relativeToProjectLower = relativeToProject.toLowerCase().replace(/\\/g, "/");
+    
+    if (preset === "react") {
+      if (!relativeToProjectLower.startsWith("src/")) {
+        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+        throw new Error(`ROOT_SOURCE_FORBIDDEN: В пресете "react" все файлы исходного кода (${baseFilename}) должны находиться строго внутри папки src/ (например, src/components/ или src/styles/).
+Подробнее о структуре проекта React читайте в регламенте: ${rulesLink}`);
+      }
+    } else if (preset === "nextjs") {
+      const allowedPaths = ["src/app/", "src/components/", "src/styles/", "src/hooks/", "app/", "components/", "pages/", "styles/", "public/"];
+      const isAllowed = allowedPaths.some(p => relativeToProjectLower.startsWith(p.toLowerCase()));
+      if (!isAllowed) {
+        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+        throw new Error(`ROOT_SOURCE_FORBIDDEN: В пресете "nextjs" все файлы исходного кода (${baseFilename}) должны находиться в соответствующих директориях (src/app/, components/ и т.д.).
+Подробнее о структуре проекта Next.js читайте в регламенте: ${rulesLink}`);
+      }
+    } else {
+      if (parentDir === projectRoot) {
+        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+        throw new Error(`ROOT_SOURCE_FORBIDDEN: Файлы исходного кода (${baseFilename}) не должны находиться прямо в корне проекта.
 Пожалуйста, перенесите файл в соответствующую подпапку (например, css/, js/ или src/).
 Подробнее о стандартах структуры папок читайте в регламенте: ${rulesLink}`);
+      }
+    }
   }
 
   // Check limits
   const filename = path.basename(resolvedPath).toLowerCase();
   if (isInsideMemory) {
-    // Memory files have no limits, EXCEPT for agent.md
-    if (filename === "agent.md" && lineCount > config.max_agent_md_lines) {
-      const ruleLink = `[core_rules.md](file:///${path.join(memoryDir, "core_rules.md").replace(/\\/g, "/")})`;
-      throw new Error(`LIMIT_EXCEEDED: Файл "${relativeToProject}" содержит ${lineCount} строк, что превышает лимит в ${config.max_agent_md_lines} строк.
-Заданный лимит для agent.md — прямое указание держать оперативную память агента краткой и структурированной.
-Подробнее о стандартах читайте в правилах: ${ruleLink}`);
+    // Check limits of core documentation files to prevent core bloat
+    const coreLimits = {
+      "agent.md": config.max_agent_md_lines || 600,
+      "core_rules.md": 500,
+      "procedures.md": 300,
+      "architecture_map.md": 300,
+      "knowledge_index.md": 300
+    };
+    
+    if (coreLimits[filename] && lineCount > coreLimits[filename]) {
+      const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+      throw new Error(`LIMIT_EXCEEDED: Файл ядра памяти "${relativeToProject}" содержит ${lineCount} строк, что превышает установленный лимит в ${coreLimits[filename]} строк.
+Это ограничение создано для предотвращения раздувания (bloat) ядра памяти. Пожалуйста, вынесите подробные правила, инструкции или списки во вспомогательные файлы (например, в директорию ai_agent_guidelines/, specifications/ или other/) и оставьте в этом файле только ссылку на них.
+Подробнее об организации памяти читайте в регламенте: ${rulesLink}`);
     }
   } else {
     if (lineCount > config.max_code_lines) {
@@ -382,6 +515,23 @@ function logMcpAction(
     if (!fs.existsSync(memoryDir)) return; // Memory not initialized yet
 
     const logPath = path.join(memoryDir, "mcp_history.log");
+    const backupLogPath = path.join(memoryDir, "mcp_history.1.log");
+
+    // Rotate log if it exceeds 50 KB (51200 bytes)
+    if (fs.existsSync(logPath)) {
+      try {
+        const stats = fs.statSync(logPath);
+        if (stats.size > 51200) {
+          if (fs.existsSync(backupLogPath)) {
+            fs.unlinkSync(backupLogPath);
+          }
+          fs.renameSync(logPath, backupLogPath);
+        }
+      } catch (rotationErr) {
+        // Silently ignore rotation errors to avoid breaking execution
+      }
+    }
+
     const timestamp = new Date().toISOString();
     const argsStr = JSON.stringify(args || {});
     const cleanDetails = details ? details.replace(/\r?\n/g, " ") : "";
@@ -853,7 +1003,8 @@ function executeLoader(projectRoot, userTime) {
   const lastLoaderPath = path.join(memoryDir, "LAST_LOADER.json");
   
   const lastLoaderData = {
-    timestamp: `${userTime}, ${dateStr}`
+    timestamp: `${userTime}, ${dateStr}`,
+    isoTimestamp: now.toISOString()
   };
   fs.writeFileSync(lastLoaderPath, JSON.stringify(lastLoaderData, null, 4), "utf-8");
 
@@ -861,11 +1012,60 @@ function executeLoader(projectRoot, userTime) {
 }
 
 /**
+ * Helper to recursively scan the workspace and identify files modified after last loader execution.
+ * Highly optimized, ignores git, node_modules, build/dist, nextjs folders, and AI_MEMORY itself.
+ */
+function getModifiedSourceFiles(dir, lastLoaderTime, projectRoot) {
+  const result = [];
+  const ignoredDirs = [
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    ".next",
+    "temp-ai-memory-mcp",
+    "ai_memory"
+  ];
+
+  function scan(currentDir) {
+    try {
+      const files = fs.readdirSync(currentDir);
+      for (const file of files) {
+        const fullPath = path.join(currentDir, file);
+        const relativePath = path.relative(projectRoot, fullPath);
+        const baseName = file.toLowerCase();
+
+        if (ignoredDirs.includes(baseName)) {
+          continue;
+        }
+
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) {
+          scan(fullPath);
+        } else {
+          const isSourceCode = [".html", ".css", ".js", ".ts", ".tsx", ".jsx", ".scss", ".sass", ".less"].some(ext => baseName.endsWith(ext));
+          if (isSourceCode && stats.mtime.getTime() > lastLoaderTime) {
+            result.push(relativePath.replace(/\\/g, "/"));
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore reading errors
+    }
+  }
+
+  scan(dir);
+  return result;
+}
+
+/**
  * execute_eos()
+ * Saves session state, performs deep QA file checking and active tasks validation.
  */
 async function executeEos(projectRoot) {
   const memoryDir = getMemoryDirPath(projectRoot);
   const checkpointPath = path.join(memoryDir, "checkpoint-latest.json");
+  const config = loadConfig(projectRoot);
   
   let checkpoint = {};
   let sinceTimestamp = "";
@@ -880,13 +1080,81 @@ async function executeEos(projectRoot) {
     }
   }
 
+  // Determine last loader timestamp
+  const lastLoaderPath = path.join(memoryDir, "LAST_LOADER.json");
+  let lastLoaderTime = 0;
+  if (fs.existsSync(lastLoaderPath)) {
+    try {
+      const content = fs.readFileSync(lastLoaderPath, "utf-8");
+      const data = JSON.parse(content);
+      if (data.isoTimestamp) {
+        lastLoaderTime = new Date(data.isoTimestamp).getTime();
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  if (!lastLoaderTime && sinceTimestamp) {
+    lastLoaderTime = new Date(sinceTimestamp).getTime();
+  }
+
+  if (!lastLoaderTime) {
+    // Fallback to 24 hours ago
+    lastLoaderTime = Date.now() - 24 * 60 * 60 * 1000;
+  }
+
+  // 1. QA Check: Scan for modified files on disk and verify they are listed in session_log.md
+  const modifiedFiles = getModifiedSourceFiles(projectRoot, lastLoaderTime, projectRoot);
+  const sessionLogPath = path.join(memoryDir, "session_log.md");
+  
+  if (modifiedFiles.length > 0 && fs.existsSync(sessionLogPath)) {
+    const sessionLogContent = fs.readFileSync(sessionLogPath, "utf-8").toLowerCase();
+    const missingDocumentation = [];
+    
+    for (const file of modifiedFiles) {
+      const base = path.basename(file).toLowerCase();
+      if (!sessionLogContent.includes(base)) {
+        missingDocumentation.push(file);
+      }
+    }
+    
+    if (missingDocumentation.length > 0) {
+      throw new Error(`EOS_BLOCKED: Вы изменили следующие файлы исходного кода, но забыли зафиксировать их в AI_MEMORY/session_log.md:
+${missingDocumentation.map(f => `- ${f}`).join("\n")}
+Пожалуйста, задокументируйте эти файлы в логе сессии (раздел "Files changed") перед сохранением.`);
+    }
+  }
+
+  // 2. QA Check: Validate active task status in tasks.md
+  let tasksPath = path.join(memoryDir, "tasks", "tasks.md");
+  if (!fs.existsSync(tasksPath)) {
+    tasksPath = path.join(memoryDir, "tasks.md");
+  }
+  
+  if (fs.existsSync(tasksPath)) {
+    const tasksContent = fs.readFileSync(tasksPath, "utf-8");
+    const activeTaskMatch = tasksContent.match(/\*\*ACTIVE_TASK:\*\*\s*(.+)/i);
+    const nextStepMatch = tasksContent.match(/\*\*NEXT_STEP:\*\*\s*(.+)/i);
+    
+    if (activeTaskMatch) {
+      const activeTask = activeTaskMatch[1].trim();
+      if (activeTask && activeTask.toLowerCase() !== "none" && activeTask !== "---") {
+        const nextStep = nextStepMatch ? nextStepMatch[1].trim() : "";
+        if (!nextStep || nextStep.includes("[Конкретный") || nextStep.includes("[next_step]") || nextStep.toLowerCase() === "none") {
+          throw new Error(`EOS_BLOCKED: Вы оставили активную задачу "${activeTask}" в работе, но не указали конкретный следующий шаг (NEXT_STEP) в файле задач. Пожалуйста, напишите четкий следующий шаг для следующего агента.`);
+        }
+      }
+    }
+  }
+
+  // Run git log for modified files since the last session
   if (!sinceTimestamp) {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
     sinceTimestamp = yesterday.toISOString();
   }
 
   const command = `git log --since="${sinceTimestamp}" --name-only --oneline`;
-  
   let gitOutput = "";
   try {
     const { stdout } = await execAsync(command, { cwd: projectRoot });
@@ -895,6 +1163,7 @@ async function executeEos(projectRoot) {
     gitOutput = `Ошибка выполнения команды git log (возможно, папка не является репозиторием): ${err.message}`;
   }
 
+  // Update checkpoint timestamp
   const now = new Date();
   checkpoint.timestamp = now.toISOString();
   fs.writeFileSync(checkpointPath, JSON.stringify(checkpoint, null, 2), "utf-8");
@@ -929,6 +1198,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             project_root: {
               type: "string",
               description: "Абсолютный путь к корню проекта (если отличается от текущей рабочей директории процесса)"
+            },
+            preset: {
+              type: "string",
+              description: "Пресет структуры проекта (vanilla, react, nextjs). По умолчанию vanilla.",
+              enum: ["vanilla", "react", "nextjs"]
             }
           }
         }
@@ -1110,7 +1384,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     
     switch (request.params.name) {
       case "init_project_memory": {
-        const result = initProjectMemory(projectRoot);
+        const preset = request.params.arguments?.preset ? String(request.params.arguments.preset).toLowerCase() : "vanilla";
+        const result = initProjectMemory(projectRoot, preset);
         resultText = result;
         response = { content: [{ type: "text", text: result }] };
         break;
