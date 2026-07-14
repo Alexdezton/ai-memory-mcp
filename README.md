@@ -70,47 +70,17 @@ Every action the agent performs while communicating with this MCP server is auto
 
 > [!WARNING]
 > **DO NOT** run the server command manually in your terminal (e.g., executing `node build/index.js` as a standalone command line).
-> Running it directly starts the stdio server transport which runs in an infinite loop waiting for IDE requests, causing your terminal and agent session to **deadlock/freeze**.
-> You only need to register the command inside your IDE's MCP settings or configuration files. The IDE client will spawn the process automatically. To ensure stability, fast startup times, and prevent network or environment issues inside background IDE runners, **Local Installation (Option A)** is the primary and highly recommended installation method for agents.
+> Direct execution starts the stdio server transport which runs in an infinite loop waiting for IDE requests, causing your terminal and agent session to **deadlock/freeze**.
+> You only need to register the command inside your IDE's MCP settings or configuration files. The IDE client will spawn and manage the process automatically.
 
 ---
 
-### Option A: Local Installation (Recommended for Agents)
+### Option A: Global Installation via NPX (Highly Recommended)
 
-Agents should follow this automated step-by-step checklist to install the server locally in the workspace:
-
-1. **Clone the repository** directly into the current workspace folder:
-   ```bash
-   git clone https://github.com/Alexdezton/ai-memory-mcp.git ai-memory-mcp
-   ```
-2. **Isolate the directory:** Add `ai-memory-mcp/` to the project's `.gitignore` file immediately to avoid committing the server code or node_modules to the active project repository:
-   ```bash
-   echo "ai-memory-mcp/" >> .gitignore
-   ```
-3. **Compile the server:** Navigate to the cloned folder, install dependencies, and build:
-   ```bash
-   cd ai-memory-mcp && npm install && npm run build
-   ```
-4. **Register the server globally:**
-   - **Antigravity 2.0 / CLI Path:** The global configuration file is located at `~/.gemini/config/mcp_config.json` (on Windows: `%USERPROFILE%\.gemini\config\mcp_config.json`).
-   - **Sandbox Restriction Bypass:** Direct filesystem write tools (like `write_to_file`) are blocked from writing to the `.gemini/config` folder due to agent sandbox rules. 
-   - **Agent Protocol:** The agent **MUST** run a terminal one-liner (Node.js or PowerShell) to update the global `mcp_config.json` file securely, prompting the user for execution permission.
-   
-   Run this Node.js one-liner in the active workspace root directory:
-   ```bash
-   node -e "const fs = require('fs'); const path = require('path'); const configFile = path.join(process.env.USERPROFILE || process.env.HOME || '', '.gemini/config/mcp_config.json'); fs.mkdirSync(path.dirname(configFile), { recursive: true }); const data = fs.existsSync(configFile) ? JSON.parse(fs.readFileSync(configFile, 'utf8')) : { mcpServers: {} }; data.mcpServers = data.mcpServers || {}; data.mcpServers['ai-memory-mcp'] = { command: 'node', args: [path.resolve('ai-memory-mcp/build/index.js').replace(/\\/g, '/')] }; fs.writeFileSync(configFile, JSON.stringify(data, null, 2), 'utf8');"
-   ```
-5. **Ask the user to refresh:**
-   - **AGENTS PROTOCOL:** Immediately stop and ask the user to reload the MCP server list (Settings → MCP → Refresh) or restart the IDE session.
-   - **DO NOT** invoke any server tools (such as `init_project_memory`) until the user confirms the refresh is complete. Calling tools beforehand will fail with a "not enabled" client-side error.
-
----
-
-### Option B: Remote Run via GitHub (Backup / Manual)
-
-If you wish to run the server remotely without cloning, add the server to your configuration files (Note for Windows: use `npx.cmd` instead of `npx`):
+NPX is the easiest, cleanest, and recommended way to install and run the server. It runs globally from the npm cache, requires zero workspace clutter, works on empty/clean projects, and automatically fetches updates from GitHub.
 
 ##### 1. In Antigravity (`~/.gemini/config/mcp_config.json`)
+Add the following to your configuration file (Note for Windows: use `npx.cmd` instead of `npx`):
 ```json
 {
   "mcpServers": {
@@ -139,7 +109,7 @@ Open Cline's settings file (`%APPDATA%\Code\User\globalStorage\saoudrizwan.claud
 ```
 
 ##### 3. In Cursor / Windsurf
-Add a new MCP server in Settings:
+Add a new MCP server in Settings -> MCP:
 - **Type:** `command`
 - **Name:** `ai-memory-mcp`
 - **Command:** `npx -y github:Alexdezton/ai-memory-mcp`
@@ -160,14 +130,46 @@ Add the following to your `claude_desktop_config.json`:
 }
 ```
 
-##### MCP & Memory Update Protocol (For Agents & Developers)
-If the `ai-memory-mcp` server is run from a local path, you can ask the agent to update it using these steps:
+---
 
-1. **Update Server Executable:** Run a shell command with the directory set to the MCP server's repository path (determine the location using your installation skills) and execute `git pull; npm run build`. This recompiles the server locally.
-2. **Update Rules (`core_rules.md`) in Active Project:**
-   - Load the updated `templates/AI_MEMORY/core_rules.md` from the MCP server repository or from GitHub raw.
-   - Read the local `AI_MEMORY/core_rules.md` in the current project.
-   - **Overwriting Protection:** If the local project's rules file has custom modifications, you **must warn the user** about potential data loss and ask for permission before overwriting. Alternatively, perform a targeted edit using `replace_file_content` to copy only the new/changed rules (like replacing `safe_write_file` with the `verify_write` protocol) and preserve all other user customizations.
+### Option B: Local Clone Installation (For Developers / Offline Use)
+
+If you wish to run the server from a local folder or make custom modifications to it:
+
+1. **Clone the repository** to a persistent global directory of your choice:
+   ```bash
+   git clone https://github.com/Alexdezton/ai-memory-mcp.git
+   ```
+2. **Install dependencies:**
+   ```bash
+   cd ai-memory-mcp && npm install
+   ```
+   *(Note: The server is written in pure JavaScript ESM, so no build/compile step is needed!)*
+3. **Register the server** in your IDE's config using the absolute path to `build/index.js`:
+   ```json
+   "ai-memory-mcp": {
+     "command": "node",
+     "args": ["/absolute/path/to/ai-memory-mcp/build/index.js"]
+   }
+   ```
+
+---
+
+### MCP & Rules Update Protocol
+
+##### 1. Updating the Server Executable
+* **If running via Option A (NPX):** No action required! Whenever a new version is pushed to the repository (with a bumped version in `package.json`), NPX will automatically pull the updated code from GitHub on the next launch.
+* **If running via Option B (Local Clone):** Simply go to the cloned directory and pull the latest changes:
+  ```bash
+  git pull
+  ```
+  *(No compile or build command is needed!)*
+
+##### 2. Updating project rules (`core_rules.md`)
+* The agent can fetch the latest raw templates from the repository:
+  `https://raw.githubusercontent.com/Alexdezton/ai-memory-mcp/main/templates/AI_MEMORY/core_rules.md`
+* Read the local `AI_MEMORY/core_rules.md` in the current project.
+* **Overwriting Protection:** If the local rules file has custom modifications, the agent **MUST NOT** overwrite them without asking the user first. Instead, merge the updates or do a targeted edit using `replace_file_content` to keep the user's custom edits.
 
 ---
 
@@ -239,46 +241,14 @@ If the `ai-memory-mcp` server is run from a local path, you can ask the agent to
 > Прямой запуск запускает stdio-транспорт сервера, который работает в бесконечном цикле ожидания запросов от IDE. Это приведет к **зависанию (deadlock)** вашего терминала и сессии агента.
 > Вам нужно лишь зарегистрировать эту команду в настройках MCP вашей IDE или в файлах конфигурации. Клиент IDE сам запустит процесс на фоне по мере необходимости.
 
-Для обеспечения стабильности, быстрой инициализации и предотвращения сетевых сбоев внутри фоновых процессов IDE, **Локальная установка (Вариант А)** является основным и рекомендуемым способом установки для агентов.
-
 ---
 
-### Вариант А: Локальная установка (Рекомендуемый для Агентов)
+### Вариант А: Глобальная установка через NPX (Рекомендуемый способ)
 
-Агенты должны следовать этому пошаговому чек-листу для автоматической локальной установки сервера в рабочей папке:
-
-1. **Клонировать репозиторий** прямо в текущую рабочую папку:
-   ```bash
-   git clone https://github.com/Alexdezton/ai-memory-mcp.git ai-memory-mcp
-   ```
-2. **Изолировать файлы:** Немедленно добавьте строку `ai-memory-mcp/` в файл `.gitignore` текущего проекта, чтобы код сервера и папка node_modules не попали в коммиты основного репозитория:
-   ```bash
-   echo "ai-memory-mcp/" >> .gitignore
-   ```
-3. **Скомпилировать сервер:** Перейдите в папку сервера, установите зависимости и соберите проект:
-   ```bash
-   cd ai-memory-mcp && npm install && npm run build
-   ```
-4. **Зарегистрировать сервер глобально:**
-   - **Путь для Antigravity 2.0 / CLI:** Глобальный файл конфигурации находится по пути `~/.gemini/config/mcp_config.json` (на Windows: `%USERPROFILE%\.gemini\config\mcp_config.json`).
-   - **Обход ограничений песочницы:** Файловые инструменты агента (например, `write_to_file`) заблокированы политикой безопасности среды (sandbox) для папки `.gemini/config`.
-   - **Протокол для агентов:** Агент **ОБЯЗАН** запустить Node.js-скрипт в терминале для безопасного обновления файла конфигурации (потребовав одобрения команды пользователем).
-   
-   Запустите следующий Node.js однострочник в корне рабочей папки:
-   ```bash
-   node -e "const fs = require('fs'); const path = require('path'); const configFile = path.join(process.env.USERPROFILE || process.env.HOME || '', '.gemini/config/mcp_config.json'); fs.mkdirSync(path.dirname(configFile), { recursive: true }); const data = fs.existsSync(configFile) ? JSON.parse(fs.readFileSync(configFile, 'utf8')) : { mcpServers: {} }; data.mcpServers = data.mcpServers || {}; data.mcpServers['ai-memory-mcp'] = { command: 'node', args: [path.resolve('ai-memory-mcp/build/index.js').replace(/\\/g, '/')] }; fs.writeFileSync(configFile, JSON.stringify(data, null, 2), 'utf8');"
-   ```
-5. **Попросить пользователя обновить список:**
-   - **ПРОТОКОЛ ДЛЯ АГЕНТОВ:** Немедленно остановитесь и попросите пользователя перезагрузить список MCP-серверов в IDE (Settings → MCP → Refresh) или перезапустить сессию.
-   - **НЕ ПЫТАЙТЕСЬ** вызывать инструменты сервера (такие как `init_project_memory`) до подтверждения от пользователя. Это приведет к клиентской ошибке "not enabled".
-
----
-
-### Вариант Б: Удаленный запуск напрямую из GitHub (Альтернативный / Вручную)
-
-Если вы хотите запустить сервер удаленно без клонирования кода, добавьте настройки в ваши конфигурационные файлы (Примечание для Windows: используйте `npx.cmd` вместо `npx`):
+Использование `npx` — это самый простой, чистый и надежный способ запуска. Сервер работает из глобального кэша npm, не забивает файлы проекта папками `node_modules`, работает в чистых проектах и автоматически скачивает обновления с GitHub.
 
 ##### 1. В Antigravity (`~/.gemini/config/mcp_config.json`)
+Добавьте в файл конфигурации (Примечание для Windows: используйте `npx.cmd` вместо `npx`):
 ```json
 {
   "mcpServers": {
@@ -322,12 +292,44 @@ If the `ai-memory-mcp` server is run from a local path, you can ask the agent to
 }
 ```
 
-##### Протокол обновления MCP и правил памяти (Для агентов и разработчиков)
-Если MCP-сервер `ai-memory-mcp` запускается из локальной директории, вы можете поручить агенту выполнить обновление следующими шагами:
+---
 
-1. **Обновление исполняемого кода сервера:** Запустите команду терминала в папке репозитория MCP-сервера (определите её местоположение на основе ваших навыков установки) и выполните `git pull; npm run build`. Это перекомпилирует билд на диске без затрагивания кэша npm.
-2. **Обновление правил (`core_rules.md`) в активном проекте:**
-   - Загрузите обновленный `templates/AI_MEMORY/core_rules.md` из репозитория MCP-сервера или напрямую с GitHub raw.
-   - Считайте локальный файл `AI_MEMORY/core_rules.md` в текущем проекте.
-   - **Защита от перезаписи настроек пользователя:** Если локальный файл правил содержит пользовательские изменения, вы **ОБЯЗАНЫ предупредить пользователя** о возможной потере данных и получить согласие на перезапись. В качестве альтернативы выполните точечное обновление (например, замените правило `safe_write_file` на `verify_write`), используя `replace_file_content`, чтобы сохранить все остальные пользовательские настройки.
+### Вариант Б: Локальный клон репозитория (Для разработчиков / оффлайн работы)
+
+Если вы хотите запускать сервер из локальной папки или вносить изменения в его код:
+
+1. **Клонируйте репозиторий** в любую постоянную папку на компьютере:
+   ```bash
+   git clone https://github.com/Alexdezton/ai-memory-mcp.git
+   ```
+2. **Установите зависимости:**
+   ```bash
+   cd ai-memory-mcp && npm install
+   ```
+   *(Примечание: Сервер написан на чистом JavaScript ESM, компиляция не требуется!)*
+3. **Зарегистрируйте сервер** в файле настроек IDE, указав абсолютный путь к `build/index.js`:
+   ```json
+   "ai-memory-mcp": {
+     "command": "node",
+     "args": ["/absolute/path/to/ai-memory-mcp/build/index.js"]
+   }
+   ```
+
+---
+
+### Протокол обновления MCP и правил памяти
+
+##### 1. Обновление кода сервера
+* **При запуске через Вариант А (NPX):** Действий не требуется! При выходе новой версии на GitHub (с увеличенным номером версии в `package.json`), `npx` автоматически загрузит изменения с репозитория при следующем запуске IDE.
+* **При запуске через Вариант Б (Локальный клон):** Просто перейдите в папку клона и скачайте изменения:
+  ```bash
+  git pull
+  ```
+  *(Команда сборки/компиляции не требуется!)*
+
+##### 2. Обновление правил (`core_rules.md`) в активном проекте
+* Агент может загрузить свежую версию шаблона правил с GitHub raw:
+  `https://raw.githubusercontent.com/Alexdezton/ai-memory-mcp/main/templates/AI_MEMORY/core_rules.md`
+* Считайте локальный файл `AI_MEMORY/core_rules.md` в текущем проекте.
+* **Защита от перезаписи настроек пользователя:** Если локальный файл правил содержит пользовательские изменения, агент **НЕ ИМЕЕТ ПРАВА** затирать их без спроса. Он должен объединить изменения или сделать точечную замену правил через `replace_file_content`, чтобы сохранить пользовательские правки.
 
