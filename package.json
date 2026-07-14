@@ -1,6 +1,6 @@
 {
   "name": "ai-memory-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "AI Memory MCP Server",
   "private": true,
   "type": "module",
@@ -8,7 +8,8 @@
     "ai-memory-mcp": "./build/index.js"
   },
   "files": [
-    "build"
+    "build",
+    "templates"
   ],
   "scripts": {
     "build": "node -e \"try { require('fs').chmodSync('build/index.js', '755') } catch (e) {}\"",
