@@ -1,6 +1,6 @@
 {
   "name": "ai-memory-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AI Memory MCP Server",
   "private": true,
   "type": "module",

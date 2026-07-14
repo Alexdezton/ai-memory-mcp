@@ -213,7 +213,7 @@ This file contains MANDATORY behavioral protocol:
 Для поддержания чистоты проекта **запрещено** размещать файлы исходного кода (`.css`, `.js`, `.ts`, `.jsx`, `.tsx`, `.scss`) непосредственно в корневом каталоге.
 
 Все исходные файлы должны быть распределены по специализированным папкам согласно стандарту:
-* [PROJECT_STRUCTURE.md](ai_agent_guidelines/PROJECT_STRUCTURE.md)
+* [PROJECT_STRUCTURE.md](ai_agent_guidelines/architecture/PROJECT_STRUCTURE.md)
 
 ### 🔒 Безопасный рефакторинг (КРИТИЧЕСКОЕ ПРАВИЛО)
 

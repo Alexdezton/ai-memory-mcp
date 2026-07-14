@@ -240,6 +240,17 @@ function initProjectMemory(projectRoot, preset = "vanilla") {
   if (!fs.existsSync(otherDir)) fs.mkdirSync(otherDir, { recursive: true });
   if (!fs.existsSync(specificationsDir)) fs.mkdirSync(specificationsDir, { recursive: true });
 
+  // Structured guidelines categories to prevent garbage accumulation
+  const guidelinesArchDir = path.join(guidelinesDir, "architecture");
+  const guidelinesDevDir = path.join(guidelinesDir, "development");
+  const guidelinesQaDir = path.join(guidelinesDir, "quality_assurance");
+  const guidelinesWorkflowDir = path.join(guidelinesDir, "workflow");
+
+  if (!fs.existsSync(guidelinesArchDir)) fs.mkdirSync(guidelinesArchDir, { recursive: true });
+  if (!fs.existsSync(guidelinesDevDir)) fs.mkdirSync(guidelinesDevDir, { recursive: true });
+  if (!fs.existsSync(guidelinesQaDir)) fs.mkdirSync(guidelinesQaDir, { recursive: true });
+  if (!fs.existsSync(guidelinesWorkflowDir)) fs.mkdirSync(guidelinesWorkflowDir, { recursive: true });
+
   const moves = [
     {
       from: path.join(memoryDir, "agent.md"),
@@ -247,7 +258,15 @@ function initProjectMemory(projectRoot, preset = "vanilla") {
     },
     {
       from: path.join(memoryDir, "AGENT_DISCIPLINE.md"),
-      to: path.join(guidelinesDir, "AGENT_DISCIPLINE.md")
+      to: path.join(guidelinesWorkflowDir, "AGENT_DISCIPLINE.md")
+    },
+    {
+      from: path.join(guidelinesDir, "AGENT_DISCIPLINE.md"),
+      to: path.join(guidelinesWorkflowDir, "AGENT_DISCIPLINE.md")
+    },
+    {
+      from: path.join(guidelinesDir, "PROJECT_STRUCTURE.md"),
+      to: path.join(guidelinesArchDir, "PROJECT_STRUCTURE.md")
     },
     {
       from: path.join(memoryDir, "tasks.md"),
@@ -380,7 +399,7 @@ function initProjectMemory(projectRoot, preset = "vanilla") {
 `;
   }
 
-  const structFile = path.join(guidelinesDir, "PROJECT_STRUCTURE.md");
+  const structFile = path.join(guidelinesArchDir, "PROJECT_STRUCTURE.md");
   fs.writeFileSync(structFile, structureContent, "utf-8");
   movedLog += `Сгенерирован PROJECT_STRUCTURE.md с пресетом "${preset}"\n`;
 
@@ -433,6 +452,17 @@ function verifyWrite(projectRoot, filepath) {
         throw new Error(`FATAL: В корне AI_Memory запрещено создавать новые файлы. Сохрани в подпапку или спроси пользователя куда он считает правильным поместить новый файл или папку`);
       }
     }
+
+    // Check guidelines root write protection to avoid "garbage dump"
+    const guidelinesDir = path.join(memoryDir, "ai_agent_guidelines");
+    if (parentDir === guidelinesDir) {
+      throw new Error(`FATAL: В корне директории ai_agent_guidelines/ запрещено создавать файлы, чтобы избежать хаотичного замусоривания правил.
+Пожалуйста, сохраните файл в соответствующую подпапку по типу стандарта:
+- ai_agent_guidelines/architecture/ (структура проекта, API, архитектурные слои)
+- ai_agent_guidelines/development/ (стандарты написания кода, CSS, JS, пресеты)
+- ai_agent_guidelines/quality_assurance/ (тестирование, QA-протоколы, чек-листы)
+- ai_agent_guidelines/workflow/ (правила git, дисциплина агента, сессионные чек-листы)`);
+    }
   }
 
   // Check root source files restriction based on preset
@@ -447,7 +477,7 @@ function verifyWrite(projectRoot, filepath) {
     
     if (preset === "react") {
       if (!relativeToProjectLower.startsWith("src/")) {
-        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "architecture", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
         throw new Error(`ROOT_SOURCE_FORBIDDEN: В пресете "react" все файлы исходного кода (${baseFilename}) должны находиться строго внутри папки src/ (например, src/components/ или src/styles/).
 Подробнее о структуре проекта React читайте в регламенте: ${rulesLink}`);
       }
@@ -455,13 +485,13 @@ function verifyWrite(projectRoot, filepath) {
       const allowedPaths = ["src/app/", "src/components/", "src/styles/", "src/hooks/", "app/", "components/", "pages/", "styles/", "public/"];
       const isAllowed = allowedPaths.some(p => relativeToProjectLower.startsWith(p.toLowerCase()));
       if (!isAllowed) {
-        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "architecture", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
         throw new Error(`ROOT_SOURCE_FORBIDDEN: В пресете "nextjs" все файлы исходного кода (${baseFilename}) должны находиться в соответствующих директориях (src/app/, components/ и т.д.).
 Подробнее о структуре проекта Next.js читайте в регламенте: ${rulesLink}`);
       }
     } else {
       if (parentDir === projectRoot) {
-        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+        const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "architecture", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
         throw new Error(`ROOT_SOURCE_FORBIDDEN: Файлы исходного кода (${baseFilename}) не должны находиться прямо в корне проекта.
 Пожалуйста, перенесите файл в соответствующую подпапку (например, css/, js/ или src/).
 Подробнее о стандартах структуры папок читайте в регламенте: ${rulesLink}`);
@@ -482,7 +512,7 @@ function verifyWrite(projectRoot, filepath) {
     };
     
     if (coreLimits[filename] && lineCount > coreLimits[filename]) {
-      const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
+      const rulesLink = `[PROJECT_STRUCTURE.md](file:///${path.join(memoryDir, "ai_agent_guidelines", "architecture", "PROJECT_STRUCTURE.md").replace(/\\/g, "/")})`;
       throw new Error(`LIMIT_EXCEEDED: Файл ядра памяти "${relativeToProject}" содержит ${lineCount} строк, что превышает установленный лимит в ${coreLimits[filename]} строк.
 Это ограничение создано для предотвращения раздувания (bloat) ядра памяти. Пожалуйста, вынесите подробные правила, инструкции или списки во вспомогательные файлы (например, в директорию ai_agent_guidelines/, specifications/ или other/) и оставьте в этом файле только ссылку на них.
 Подробнее об организации памяти читайте в регламенте: ${rulesLink}`);
