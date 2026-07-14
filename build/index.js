@@ -752,6 +752,9 @@ ${decisionsSummary}
  */
 function cleanupWorkspace(projectRoot, filesToDelete) {
   let log = "";
+  if (!filesToDelete || !Array.isArray(filesToDelete)) {
+    return "Список файлов для удаления пуст или не является массивом (filesToDelete должен быть массивом строк).";
+  }
   for (const file of filesToDelete) {
     const resolvedPath = path.isAbsolute(file) ? file : path.resolve(projectRoot, file);
     const relative = path.relative(projectRoot, resolvedPath);
