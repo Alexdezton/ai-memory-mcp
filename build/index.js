@@ -1480,7 +1480,13 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch((error) => {
-  console.error("Критическая ошибка сервера:", error);
-  process.exit(1);
-});
+// Only run main if this file is executed directly (not imported)
+const isMain = process.argv[1] && (process.argv[1].endsWith("index.js") || process.argv[1].endsWith("build\\index.js") || process.argv[1].endsWith("build/index.js"));
+if (isMain) {
+  main().catch((error) => {
+    console.error("Критическая ошибка сервера:", error);
+    process.exit(1);
+  });
+}
+
+export { initProjectMemory, verifyWrite, executeEos };
