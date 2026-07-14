@@ -20,6 +20,7 @@ const execAsync = promisify(exec);
 const DEFAULT_CONFIG = {
   max_code_lines: 1000,
   max_agent_md_lines: 600,
+  disallow_root_source_files: true,
   allowed_memory_root_files: [
     "LOADER.md",
     "EOS.md",
@@ -91,6 +92,7 @@ function loadConfig(projectRoot) {
       return {
         max_code_lines: userConfig.max_code_lines ?? DEFAULT_CONFIG.max_code_lines,
         max_agent_md_lines: userConfig.max_agent_md_lines ?? userConfig.max_memory_md_lines ?? DEFAULT_CONFIG.max_agent_md_lines,
+        disallow_root_source_files: userConfig.disallow_root_source_files ?? DEFAULT_CONFIG.disallow_root_source_files,
         allowed_memory_root_files: userConfig.allowed_memory_root_files ?? DEFAULT_CONFIG.allowed_memory_root_files,
       };
     } catch (e) {
@@ -327,6 +329,16 @@ function verifyWrite(projectRoot, filepath) {
         throw new Error(`FATAL: В корне AI_Memory запрещено создавать новые файлы. Сохрани в подпапку или спроси пользователя куда он считает правильным поместить новый файл или папку`);
       }
     }
+  }
+
+  // Check root source files restriction
+  const parentDir = path.dirname(resolvedPath);
+  const ext = path.extname(resolvedPath).toLowerCase();
+  const baseFilename = path.basename(resolvedPath);
+  const isSourceFile = [".css", ".js", ".ts", ".tsx", ".jsx", ".scss", ".sass", ".less"].includes(ext);
+
+  if (config.disallow_root_source_files && parentDir === projectRoot && isSourceFile) {
+    throw new Error(`ROOT_SOURCE_FORBIDDEN: Файлы исходного кода (${baseFilename}) не должны находиться прямо в корне проекта. Пожалуйста, организуйте структуру проекта и перенесите этот файл в соответствующую подпапку (например, css/, js/, styles/, scripts/ или src/).`);
   }
 
   // Check limits
