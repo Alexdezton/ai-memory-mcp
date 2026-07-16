@@ -5,19 +5,6 @@
 
 ---
 
-## 1. Вызов Loader (Запуск)
-Вызовите инструмент MCP-сервера `execute_loader(user_time: "[TIME]", project_root: "[ROOT]")`.
-Он автоматически прочитает нужные файлы ядра на стороне сервера, обновит `LAST_LOADER.json` и вернет готовый статус проекта.
-
-*Если MCP-сервер недоступен, выполните процедуру вручную:*
-1. Прочитайте 3 файла: `core_rules.md`, `tasks/tasks.md` и `checkpoint-latest.json`.
-2. Запишите в `LAST_LOADER.json`: `{"timestamp": "[TIME], [DATE]"}`.
-
----
-
-## 2. Итоговый статус
-После загрузки агент обязан вывести:
-```
-AI_MEMORY LOADED. ACTIVE_TASK: [ID], NEXT_STEP: [Шаг], BLOCKERS: [Блокеры], PROJECT_STATE: [Режим]
-```
-Начните выполнение `NEXT_STEP`. Читайте другие файлы из `AI_MEMORY/` (спецификации, архитектуру) только по мере необходимости по ходу задачи.
+<!-- SYSTEM_LOADER_PROTOCOL_START -->
+{SYSTEM_LOADER_PROTOCOL}
+<!-- SYSTEM_LOADER_PROTOCOL_END -->

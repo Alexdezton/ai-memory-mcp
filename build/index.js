@@ -8,6 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { fileURLToPath } from "url";
@@ -78,6 +79,134 @@ function getMemoryDirPath(projectRoot) {
     return aiMemoryPath1;
   }
   return aiMemoryPath2; // default
+}
+
+/**
+ * Создает временную резервную копию папки AI_MEMORY в папке Temp ОС
+ */
+function createTempBackup(projectRoot) {
+  const memoryDir = getMemoryDirPath(projectRoot);
+  if (!fs.existsSync(memoryDir)) {
+    return null;
+  }
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const projectName = path.basename(projectRoot) || "project";
+    const backupDir = path.join(os.tmpdir(), `ai_memory_backup_${projectName}_${timestamp}`);
+
+    function copyRecursiveSync(src, dest) {
+      const stats = fs.statSync(src);
+      if (stats.isDirectory()) {
+        if (!fs.existsSync(dest)) {
+          fs.mkdirSync(dest, { recursive: true });
+        }
+        const files = fs.readdirSync(src);
+        for (const file of files) {
+          copyRecursiveSync(path.join(src, file), path.join(dest, file));
+        }
+      } else {
+        fs.copyFileSync(src, dest);
+      }
+    }
+
+    copyRecursiveSync(memoryDir, backupDir);
+    return backupDir;
+  } catch (err) {
+    // Не критично для основной работы, но логируем
+    console.error(`Backup failed: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Динамическая инжекция системных переменных в файлы правил и регламентов
+ */
+function injectSystemVariables(projectRoot) {
+  const memoryDir = getMemoryDirPath(projectRoot);
+  if (!fs.existsSync(memoryDir)) {
+    return;
+  }
+
+  // 1. Загружаем конфиг проекта
+  const config = loadConfig(projectRoot);
+
+  // 2. Путь к system_variables.json
+  const variablesPath = path.resolve(__dirname, "..", "templates", "system_variables.json");
+  if (!fs.existsSync(variablesPath)) {
+    return;
+  }
+
+  try {
+    const variablesContent = fs.readFileSync(variablesPath, "utf-8");
+    const variables = JSON.parse(variablesContent);
+
+    // 3. Карта плейсхолдеров и соответствующих им относительных путей файлов в AI_MEMORY
+    const placeholderFiles = {
+      "SYSTEM_CORE_RULES": "core_rules.md",
+      "SYSTEM_LOADER_PROTOCOL": "LOADER.md",
+      "SYSTEM_EOS_PROTOCOL": "EOS.md",
+      "SYSTEM_COMMANDS_REFERENCE": "COMMANDS.md",
+      "SYSTEM_DOCUMENTATION_SYNC": "documentation_sync_rules.md",
+      "SYSTEM_PROJECT_STRUCTURE": "ai_agent_guidelines/architecture/PROJECT_STRUCTURE.md",
+      "SYSTEM_AGENT_DISCIPLINE": "ai_agent_guidelines/workflow/AGENT_DISCIPLINE.md",
+      "SYSTEM_DOCUMENTATION_SYNC_DETAILS": "ai_agent_guidelines/workflow/DOCUMENTATION_SYNC.md",
+      "SYSTEM_SAFE_REFACTORING": "ai_agent_guidelines/development/SAFE_REFACTORING.md"
+    };
+
+    // 4. Обрабатываем каждый файл
+    for (const [key, relativePath] of Object.entries(placeholderFiles)) {
+      const filePath = path.join(memoryDir, relativePath);
+      if (!fs.existsSync(filePath)) {
+        continue;
+      }
+
+      let fileContent = fs.readFileSync(filePath, "utf-8");
+
+      // Подготавливаем текст переменной, подставляя динамические настройки
+      let rawRuleText = variables[key] || "";
+      let ruleText = rawRuleText
+        .replace(/{max_code_lines}/g, String(config.max_code_lines))
+        .replace(/{preset}/g, String(config.preset));
+
+      const startMarker = `<!-- ${key}_START -->`;
+      const endMarker = `<!-- ${key}_END -->`;
+
+      if (fileContent.includes(startMarker) && fileContent.includes(endMarker)) {
+        // Заменяем контент внутри маркеров
+        const startIndex = fileContent.indexOf(startMarker) + startMarker.length;
+        const endIndex = fileContent.indexOf(endMarker);
+        
+        fileContent = 
+          fileContent.substring(0, startIndex) +
+          "\n" + ruleText + "\n" +
+          fileContent.substring(endIndex);
+      } else {
+        // Если маркеров нет (старые проекты / legacy) - проводим автоматическую конвертацию:
+        // Оборачиваем весь существующий контент в USER SECTION, а сверху дописываем SYSTEM SECTION с маркерами.
+        const userStart = "<!-- USER SECTION START -->";
+        const userEnd = "<!-- USER SECTION END -->";
+        
+        let userContent = fileContent;
+        // Если уже есть USER SECTION, вырежем контент из него, иначе возьмем весь файл
+        if (fileContent.includes(userStart) && fileContent.includes(userEnd)) {
+          const uStartIdx = fileContent.indexOf(userStart) + userStart.length;
+          const uEndIdx = fileContent.indexOf(userEnd);
+          userContent = fileContent.substring(uStartIdx, uEndIdx).trim();
+        }
+
+        // Собираем новый файл
+        fileContent = `# ${key.replace("SYSTEM_", "").replace("_", " ")}\n\n` +
+          `--- \n\n` +
+          `${startMarker}\n${ruleText}\n${endMarker}\n\n` +
+          `--- \n\n` +
+          `${userStart}\n${userContent}\n${userEnd}\n`;
+      }
+
+      fs.writeFileSync(filePath, fileContent, "utf-8");
+    }
+  } catch (err) {
+    console.error(`Variables injection failed: ${err.message}`);
+  }
 }
 
 /**
@@ -192,6 +321,12 @@ function checkWorkspaceLimits(projectRoot) {
  * ETAP 1: Инициализация проекта и рефакторинг папок
  */
 function initProjectMemory(projectRoot, preset = "vanilla") {
+  const backupPath = createTempBackup(projectRoot);
+  let backupLog = "";
+  if (backupPath) {
+    backupLog = `Резервная копия папки памяти успешно сохранена во временном каталоге ОС: ${backupPath}\n`;
+  }
+
   const memoryDir = getMemoryDirPath(projectRoot);
   const templatesDir = path.resolve(__dirname, "..", "templates");
 
@@ -403,7 +538,10 @@ function initProjectMemory(projectRoot, preset = "vanilla") {
   fs.writeFileSync(structFile, structureContent, "utf-8");
   movedLog += `Сгенерирован PROJECT_STRUCTURE.md с пресетом "${preset}"\n`;
 
-  return `${copyLog}${movedLog}Инициализация памяти завершена.`;
+  // Run variables injection to sync rules with current config and preset
+  injectSystemVariables(projectRoot);
+
+  return `${backupLog}${copyLog}${movedLog}Инициализация памяти завершена.`;
 }
 
 /**
@@ -969,6 +1107,9 @@ function cleanupWorkspace(projectRoot, filesToDelete) {
  * execute_loader(user_time)
  */
 function executeLoader(projectRoot, userTime) {
+  // Inject system variables first to update the rules files in-place
+  injectSystemVariables(projectRoot);
+
   const memoryDir = getMemoryDirPath(projectRoot);
   
   // 1. Read core_rules.md for PROJECT_STATE
@@ -1519,4 +1660,4 @@ if (isMain) {
   });
 }
 
-export { initProjectMemory, verifyWrite, executeEos };
+export { initProjectMemory, verifyWrite, executeEos, executeLoader };

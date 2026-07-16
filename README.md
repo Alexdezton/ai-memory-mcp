@@ -165,11 +165,10 @@ If you wish to run the server from a local folder or make custom modifications t
   ```
   *(No compile or build command is needed!)*
 
-##### 2. Updating project rules (`core_rules.md`)
-* The agent can fetch the latest raw templates from the repository:
-  `https://raw.githubusercontent.com/Alexdezton/ai-memory-mcp/main/templates/AI_MEMORY/core_rules.md`
-* Read the local `AI_MEMORY/core_rules.md` in the current project.
-* **Overwriting Protection:** If the local rules file has custom modifications, the agent **MUST NOT** overwrite them without asking the user first. Instead, merge the updates or do a targeted edit using `replace_file_content` to keep the user's custom edits.
+##### 2. Dynamic Variables & Updates Protection
+* **Dynamic Variable Injection:** All system rules are loaded dynamically from `system_variables.json` inside the MCP server. When `execute_loader` or `init_project_memory` runs, these variables are automatically injected into the project files using placeholders like `{SYSTEM_CORE_RULES}` and boundary comments (`<!-- SYSTEM_..._START -->`).
+* **Overwriting Protection:** Any user custom rules placed within the `<!-- USER SECTION START -->` comments are completely ignored by the server and will never be overwritten.
+* **Auto-Backups:** During initialization or updates, the server creates a temporary copy of the `AI_MEMORY/` directory in the operating system's Temp directory (`os.tmpdir()/ai_memory_backup_*`). If anything fails, you can find the backup there.
 
 ---
 
@@ -327,9 +326,8 @@ If you wish to run the server from a local folder or make custom modifications t
   ```
   *(Команда сборки/компиляции не требуется!)*
 
-##### 2. Обновление правил (`core_rules.md`) в активном проекте
-* Агент может загрузить свежую версию шаблона правил с GitHub raw:
-  `https://raw.githubusercontent.com/Alexdezton/ai-memory-mcp/main/templates/AI_MEMORY/core_rules.md`
-* Считайте локальный файл `AI_MEMORY/core_rules.md` в текущем проекте.
-* **Защита от перезаписи настроек пользователя:** Если локальный файл правил содержит пользовательские изменения, агент **НЕ ИМЕЕТ ПРАВА** затирать их без спроса. Он должен объединить изменения или сделать точечную замену правил через `replace_file_content`, чтобы сохранить пользовательские правки.
+##### 2. Динамические переменные и защита пользовательских настроек
+* **Динамическая инжекция правил:** Все системные правила подгружаются автоматически из файла `system_variables.json` дистрибутива MCP-сервера. При вызове лоадера или инициализации эти правила динамически встраиваются в локальные файлы через плейсхолдеры `{SYSTEM_...}` и маркеры границ (`<!-- SYSTEM_..._START -->`).
+* **Защита от перезаписи настроек пользователя:** Любые кастомные правила пользователя, записанные внутри блока `<!-- USER SECTION START -->`, полностью защищены и никогда не затираются сервером при обновлениях.
+* **Резервное копирование (Backups):** Перед каждым обновлением структуры или шаблонов сервер автоматически сохраняет полную копию папки памяти во временной папке операционной системы (Windows Temp: `os.tmpdir()/ai_memory_backup_*`). В случае сбоя вы всегда сможете восстановить свои данные оттуда.
 

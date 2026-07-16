@@ -4,11 +4,6 @@
 
 ---
 
-## ⚡ Шпаргалка (Quick Reference)
-
-* **`LOADER`** — запуск сессии. Загружает минимальный контекст ядра памяти.
-* **`EOS`** — закрытие сессии. Проверяет измененные файлы, фиксирует задачи в `tasks.md`, делает лог в `session_log.md` и сохраняет чекпоинт `checkpoint-latest.json`.
-* **`SET PROJECT_STATE [development|release]`** — переключает поведение агента:
-  * `development` (по умолчанию): агент активно предлагает идеи и альтернативы.
-  * `release`: агент строго и точно выполняет инструкции пользователя без лишних предложений.
-* **`GIT COMMIT`** — запускает автодокументирование изменений и делает локальный коммит в Git.
+<!-- SYSTEM_COMMANDS_REFERENCE_START -->
+{SYSTEM_COMMANDS_REFERENCE}
+<!-- SYSTEM_COMMANDS_REFERENCE_END -->
