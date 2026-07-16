@@ -6,6 +6,19 @@ This server acts as a strict guardrail for AI coding assistants, preventing chao
 
 ---
 
+### 🎯 Key Benefits & Guardrails (Why install this MCP?)
+This MCP server acts as an automated **enterprise-grade QA manager** for your AI coding assistant. It establishes strict guardrails to prevent AI agent decay and maintain code quality:
+
+* **🛠️ Full Configurable File Size Control:** Keep your files modular! Define strict line limits for your codebase (e.g., maximum 1000 lines for source code, 600 lines for memory index) in `mcp_ai_memory_config.json`. The server enforces these limits on every file write, prompting the agent to refactor instead of bloating.
+* **📂 Root Directory Protection (Preset-Based):** Say goodbye to chaotic roots! The server enforces strict folder layout presets (`react`, `nextjs`, `vanilla`). Any attempt by the agent to save code outside the source folders (like `src/` for React) or in the root is immediately blocked.
+* **🔒 Safe Updates & Rules Variables Sync:** Dynamic rules variables are loaded directly from the package configurations and dynamically injected via placeholders (like `{SYSTEM_CORE_RULES}`). The server updates system guidelines on the fly, while the user's custom edits under `<!-- USER SECTION -->` are 100% protected and never overwritten.
+* **🚀 Automatic OS Temp Backups:** Before running updates or modifications, the server silently backs up the `AI_MEMORY/` directory to the OS Temp folder, ensuring zero risk of custom documentation loss.
+* **📝 Planning Discipline (No-Plan Blocker):** The server blocks writing source code if the agent hasn't created a launch plan (`project_launch_plan.md`) first. No plan = no code!
+* **📦 Markdown Task Tree Manager:** Maintain parent-child task consistency. The agent cannot close a parent task in `tasks.md` if any child subtask is still open.
+* **🔍 Session-End QA Scan (execute_eos):** Prevents ending a session if there are undocumented source code changes (missing in `session_log.md`) or if active tasks do not have a defined `NEXT_STEP`.
+
+---
+
 ## English Documentation (Primary)
 
 ### Features & Tools
@@ -173,6 +186,19 @@ If you wish to run the server from a local folder or make custom modifications t
 ---
 
 ## Документация на русском языке
+
+### 🎯 Ключевые преимущества и защитные барьеры (Guardrails)
+Этот MCP-сервер выполняет роль автоматического **QA-менеджера уровня Enterprise** для ваших AI-ассистентов. Он устанавливает строгие барьеры (guardrails), которые не позволяют ИИ засорять проект и ухудшать качество кода:
+
+* **🛠️ Полный контроль размера файлов через конфиг:** Поддерживайте модульность! Задавайте жесткие лимиты на количество строк исходного кода (например, макс. 1000 строк) и файлов памяти в `mcp_ai_memory_config.json`. Сервер блокирует превышение лимитов и заставляет агента проводить своевременный рефакторинг.
+* **📂 Защита корня проекта от «мусора» (Пресеты структуры):** Больше никакого хаоса в корне! Сервер поддерживает жесткие пресеты структуры папок (`react`, `nextjs`, `vanilla`). Любая попытка агента записать исходный код в корень проекта или вне папки пресета (например, вне `src/` для React) блокируется на корню.
+* **🔒 Безопасные обновления и облачные переменные правил:** Системные правила поставляются как переменные из единого JSON-файла и автоматически встраиваются в локальные файлы через плейсхолдеры `{SYSTEM_...}`. При выходе новой версии MCP правила обновляются на ПК, но кастомные разделы пользователя (`<!-- USER SECTION -->`) гарантированно остаются нетронутыми.
+* **🚀 Автоматические бэкапы в Temp:** Перед проведением обновлений или рефакторингом структуры сервер сохраняет полную резервную копию папки памяти во временной папке ОС (Windows Temp), предотвращая любую потерю истории.
+* **📝 Дисциплина планирования (No-Plan Blocker):** Сервер запретит агенту писать код, если тот предварительно не составил и не согласовал с вами план запуска (`project_launch_plan.md`). Нет плана — нет кода!
+* **📦 Древовидный менеджер задач в Markdown:** Исключает логические ошибки в бэклисте. Агент не сможет закрыть родительскую задачу в `tasks.md`, если в ней остался хотя бы один незавершенный подпункт.
+* **🔍 QA-контроль закрытия сессий (execute_eos):** Защищает от закрытия сессии, если на диске остались недокументированные изменения кода (отсутствующие в `session_log.md`) или если в активных задачах не расписан конкретный следующий шаг (`NEXT_STEP`).
+
+---
 
 ### Функционал и инструменты (Tools)
 
