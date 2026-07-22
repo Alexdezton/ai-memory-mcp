@@ -1179,7 +1179,31 @@ function executeLoader(projectRoot, userTime) {
   };
   fs.writeFileSync(lastLoaderPath, JSON.stringify(lastLoaderData, null, 4), "utf-8");
 
-  return `AI_MEMORY LOADED. ACTIVE_TASK: ${activeTask}, NEXT_STEP: ${nextStep}, BLOCKERS: ${blockers}, PROJECT_STATE: ${projectState}\n\n[IMPORTANT] Агент ОБЯЗАН прочитать файлы правил в AI_MEMORY (особенно core_rules.md) перед внесением любых изменений!`;
+  // 4. Scan project for oversized files and warn agent if any exist
+  const config = loadConfig(projectRoot);
+  const allSourceFiles = getModifiedSourceFiles(projectRoot, 0, projectRoot);
+  const oversizedInProject = [];
+  for (const file of allSourceFiles) {
+    const fullPath = path.resolve(projectRoot, file);
+    if (fs.existsSync(fullPath)) {
+      try {
+        const fileContent = fs.readFileSync(fullPath, "utf-8");
+        const lines = fileContent.split(/\r?\n/).length;
+        if (lines > config.max_code_lines) {
+          oversizedInProject.push(`${file} (${lines}/${config.max_code_lines} строк)`);
+        }
+      } catch (e) {
+        // Ignore read errors
+      }
+    }
+  }
+
+  let warningMsg = "";
+  if (oversizedInProject.length > 0) {
+    warningMsg = `\n\n[WARNING] Внимание: В проекте обнаружены файлы, ПРЕВЫШАЮЩИЕ ЛИМИТ СТРОК (${config.max_code_lines}):\n${oversizedInProject.map(f => `- ${f}`).join("\n")}\nВы ОБЯЗАНЫ выполнить их модульный рефакторинг при первом же редактировании!`;
+  }
+
+  return `AI_MEMORY LOADED. ACTIVE_TASK: ${activeTask}, NEXT_STEP: ${nextStep}, BLOCKERS: ${blockers}, PROJECT_STATE: ${projectState}${warningMsg}\n\n[IMPORTANT] Агент ОБЯЗАН прочитать файлы правил в AI_MEMORY (особенно core_rules.md) перед внесением любых изменений!`;
 }
 
 /**
@@ -1317,6 +1341,30 @@ ${missingDocumentation.map(f => `- ${f}`).join("\n")}
         }
       }
     }
+  }
+
+  // 3. QA Check: Enforce line limits on all modified source files
+  const oversizedModifiedFiles = [];
+  for (const file of modifiedFiles) {
+    const fullPath = path.resolve(projectRoot, file);
+    if (fs.existsSync(fullPath)) {
+      try {
+        const fileContent = fs.readFileSync(fullPath, "utf-8");
+        const lines = fileContent.split(/\r?\n/).length;
+        if (lines > config.max_code_lines) {
+          oversizedModifiedFiles.push({ file, lines, limit: config.max_code_lines });
+        }
+      } catch (e) {
+        // Ignore read errors
+      }
+    }
+  }
+
+  if (oversizedModifiedFiles.length > 0) {
+    throw new Error(`EOS_BLOCKED: Вы изменили следующие файлы исходного кода, но их объем ПРЕВЫШАЕТ ЛИМИТ (${config.max_code_lines} строк):
+${oversizedModifiedFiles.map(item => `- ${item.file}: ${item.lines} строк (максимум ${item.limit} строк)`).join("\n")}
+Запрещено завершать сессию с измененными файлами, превышающими лимит строк!
+Пожалуйста, проведите модульный рефакторинг, вынесите код в отдельные подключенные файлы и завершите проверку.`);
   }
 
   // Run git log for modified files since the last session
